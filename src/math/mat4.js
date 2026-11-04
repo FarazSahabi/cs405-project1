@@ -22,37 +22,128 @@ import { todo } from './todo.js';
 /* ------------------------------------------------------------- Part A ---- */
 
 /** The 4×4 identity. */
-export function identity() { return todo('mat4.identity'); }
+export function identity() {
+  // Ones on the diagonal (indices 0, 5, 10, 15), zeros elsewhere.
+  return new Float32Array([
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1,
+  ]);
+}
 
 /** A · B (apply B first, then A). Must not modify a or b. */
-export function multiply(a, b) { return todo('mat4.multiply'); }
+export function multiply(a, b) {
+  // out(row r, col c) = sum over k of  a(row r, col k) * b(row k, col c)
+  // With column-major storage, element (r, c) lives at index c * 4 + r.
+  const out = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) {
+      let sum = 0;
+      for (let k = 0; k < 4; k++) sum += a[k * 4 + r] * b[c * 4 + k];
+      out[c * 4 + r] = sum;
+    }
+  }
+  return out;
+}
 
 /** Translation by (tx, ty, tz). */
-export function translate(tx, ty, tz) { return todo('mat4.translate'); }
+export function translate(tx, ty, tz) {
+  // Identity, with the offset in the last column (indices 12, 13, 14).
+  return new Float32Array([
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    tx, ty, tz, 1,
+  ]);
+}
 
 /** Rotation by `rad` about the x axis. */
-export function rotateX(rad) { return todo('mat4.rotateX'); }
+export function rotateX(rad) {
+  const c = Math.cos(rad), s = Math.sin(rad);
+  // x stays fixed; y and z rotate into each other (+y → +z for 90°).
+  return new Float32Array([
+    1, 0, 0, 0,
+    0, c, s, 0,
+    0, -s, c, 0,
+    0, 0, 0, 1,
+  ]);
+}
 
 /** Rotation by `rad` about the y axis. */
-export function rotateY(rad) { return todo('mat4.rotateY'); }
+export function rotateY(rad) {
+  const c = Math.cos(rad), s = Math.sin(rad);
+  // y stays fixed; z and x rotate into each other (+z → +x for 90°).
+  return new Float32Array([
+    c, 0, -s, 0,
+    0, 1, 0, 0,
+    s, 0, c, 0,
+    0, 0, 0, 1,
+  ]);
+}
 
 /** Rotation by `rad` about the z axis. */
-export function rotateZ(rad) { return todo('mat4.rotateZ'); }
+export function rotateZ(rad) {
+  const c = Math.cos(rad), s = Math.sin(rad);
+  // z stays fixed; x and y rotate into each other (+x → +y for 90°).
+  return new Float32Array([
+    c, s, 0, 0,
+    -s, c, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1,
+  ]);
+}
 
 /** Non-uniform scale by (sx, sy, sz). */
-export function scale(sx, sy, sz) { return todo('mat4.scale'); }
+export function scale(sx, sy, sz) {
+  // Scale factors on the diagonal.
+  return new Float32Array([
+    sx, 0, 0, 0,
+    0, sy, 0, 0,
+    0, 0, sz, 0,
+    0, 0, 0, 1,
+  ]);
+}
 
 /** Mᵀ */
-export function transpose(m) { return todo('mat4.transpose'); }
+export function transpose(m) {
+  // Swap rows and columns: element (r, c) of the result is element (c, r) of m.
+  const out = new Float32Array(16);
+  for (let c = 0; c < 4; c++) {
+    for (let r = 0; r < 4; r++) out[c * 4 + r] = m[r * 4 + c];
+  }
+  return out;
+}
 
 /**
  * Inverse of a RIGID transform M = T·R (rotation + translation only, no scale).
  * Do not write a general 4×4 inverse: use the structure (Week 3).
  */
-export function invertRigid(m) { return todo('mat4.invertRigid'); }
+export function invertRigid(m) {
+  // M = T·R  →  M⁻¹ = R⁻¹·T⁻¹ = Rᵀ · T(−t).
+  // The inverse of a pure rotation is its transpose, so the upper-left 3×3
+  // block of the result is the transpose of M's. The new translation is −Rᵀ·t.
+  const out = new Float32Array(16);
+  for (let c = 0; c < 3; c++) {
+    for (let r = 0; r < 3; r++) out[c * 4 + r] = m[r * 4 + c];
+  }
+  const tx = m[12], ty = m[13], tz = m[14];
+  out[12] = -(m[0] * tx + m[1] * ty + m[2] * tz);
+  out[13] = -(m[4] * tx + m[5] * ty + m[6] * tz);
+  out[14] = -(m[8] * tx + m[9] * ty + m[10] * tz);
+  out[15] = 1;
+  return out;
+}
 
 /** M · v for a 4-component v = [x, y, z, w]; returns [x', y', z', w']. */
-export function transformVec4(m, v) { return todo('mat4.transformVec4'); }
+export function transformVec4(m, v) {
+  // Each output component is (row r of m) · v.
+  const out = [0, 0, 0, 0];
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) out[r] += m[c * 4 + r] * v[c];
+  }
+  return out;
+}
 
 /* ------------------------------------------------------------- Part C ---- */
 
