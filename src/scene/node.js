@@ -40,7 +40,12 @@ export class SceneNode {
    * @param {Float32Array} [parentWorld]  world matrix of the parent (identity for the root)
    */
   updateWorld(parentWorld) {
-    return todo('SceneNode.updateWorld');
+    // world = parent.world · local. The root has no parent, so its world
+    // matrix is just a copy of its local matrix.
+    this.world = parentWorld ? mat4.multiply(parentWorld, this.local) : new Float32Array(this.local);
+    // Every child is then placed relative to THIS node's world matrix, so a
+    // change anywhere above moves the whole subtree below it.
+    for (const child of this.children) child.updateWorld(this.world);
   }
 
   /** Visit this node and all descendants depth-first: fn(node, depth). */

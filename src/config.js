@@ -14,6 +14,6 @@ export const PAINTINGS = [
   { id: 'ormanda-karaca', file: 'ormanda-karaca.jpg', artist: 'Şeker Ahmed Paşa', title: 'Ormanda Karaca' },
 ];
 
-export const DEFAULT_PAINTING = 'kavunlu';
+export const DEFAULT_PAINTING = 'kabatas';
 
 export const paintingURL = (p) => `${import.meta.env.BASE_URL}paintings/${p.file}`;
