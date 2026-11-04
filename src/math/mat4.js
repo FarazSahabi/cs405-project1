@@ -17,7 +17,7 @@
  *
  * No maths libraries (no gl-matrix, no Three.js). Tests: tests/mat4.test.js
  */
-import { todo } from './todo.js';
+import * as vec3 from './vec3.js';
 
 /* ------------------------------------------------------------- Part A ---- */
 
@@ -153,21 +153,67 @@ export function transformVec4(m, v) {
  * Must stay finite when `up` is parallel to the view direction — handle it.
  * eye, target, up: [x, y, z]
  */
-export function lookAt(eye, target, up) { return todo('mat4.lookAt'); }
+export function lookAt(eye, target, up) {
+  // f = forward: the direction the camera looks.
+  const f = vec3.normalize(vec3.sub(target, eye));
+
+  // First cross product: right = f × up. If `up` is parallel to f the cross
+  // product is (nearly) zero and the camera would flip, so we then try
+  // other world axes until one is not parallel to f.
+  let right = vec3.cross(f, vec3.normalize(up));
+  if (vec3.length(right) < 1e-6) {
+    for (const alt of [[0, 0, -1], [0, 1, 0], [1, 0, 0]]) {
+      right = vec3.cross(f, alt);
+      if (vec3.length(right) > 1e-3) break;
+    }
+  }
+  right = vec3.normalize(right);
+
+  // Second cross product: true up = right × f (perpendicular to both).
+  const u = vec3.cross(right, f);
+
+  // Rows of the rotation are right, u and −f (the camera looks down −z).
+  // The translation moves the eye to the origin:  −(axis · eye).
+  return new Float32Array([
+    right[0], u[0], -f[0], 0,
+    right[1], u[1], -f[1], 0,
+    right[2], u[2], -f[2], 0,
+    -vec3.dot(right, eye), -vec3.dot(u, eye), vec3.dot(f, eye), 1,
+  ]);
+}
 
 /**
  * Perspective projection for WebGPU (depth z ∈ [0, 1]).
  * fovY: vertical field of view in radians; aspect = width / height;
  * near, far: positive distances along −z.
  */
-export function perspective(fovY, aspect, near, far) { return todo('mat4.perspective'); }
+export function perspective(fovY, aspect, near, far) {
+  const t = 1 / Math.tan(fovY / 2); // cot(fovY / 2)
+  // x, y are scaled by t (and x by 1/aspect). w becomes −z_view, which is
+  // what makes far things smaller after the divide by w.
+  // Depth: z_clip = far/(near−far)·z + near·far/(near−far), giving
+  // z/w = 0 at the near plane and 1 at the far plane (WebGPU).
+  return new Float32Array([
+    t / aspect, 0, 0, 0,
+    0, t, 0, 0,
+    0, 0, far / (near - far), -1,
+    0, 0, (near * far) / (near - far), 0,
+  ]);
+}
 
 /**
  * Orthographic projection for WebGPU (depth z ∈ [0, 1]) of the box
  * x ∈ [left, right], y ∈ [bottom, top], z ∈ [−near, −far] in view space.
  */
 export function orthographic(left, right, bottom, top, near, far) {
-  return todo('mat4.orthographic');
+  // Map the box to the clip volume: x, y to [−1, 1] (scale then shift),
+  // and z ∈ [−near, −far] to [0, 1]. No perspective, so w stays 1.
+  return new Float32Array([
+    2 / (right - left), 0, 0, 0,
+    0, 2 / (top - bottom), 0, 0,
+    0, 0, 1 / (near - far), 0,
+    -(right + left) / (right - left), -(top + bottom) / (top - bottom), near / (near - far), 1,
+  ]);
 }
 
 /* ------------------------------------------------- provided (not graded) - */
