@@ -141,10 +141,6 @@ frame, number of draw calls and vertices submitted per frame.
 - The debug axes and the curve overlay ignore the depth buffer so they stay
   visible over the painting.
 
-
-```bash
-```
-
 ## Bonus (both off by default; the Part A–E scene is unchanged)
 
 1. **Least-squares Bézier fitting** (`src/math/fit.js`, `src/scene/curveFit.js`).
