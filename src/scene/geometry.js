@@ -35,3 +35,24 @@ export function axes(len = 1) {
     0, 0, 0, 0, 0, 1, 0, 0, len, 0, 0, 1,
   ]);
 }
+
+/**
+ * Unit sphere (radius 0.5) centred at the origin, as a triangle list with
+ * smooth normals. `rings` bands from pole to pole, `segments` around the y axis.
+ */
+export function sphere(rings = 14, segments = 24) {
+  const point = (i, j) => {
+    const theta = (Math.PI * i) / rings;       // 0 at +y, π at −y
+    const phi = (2 * Math.PI * j) / segments;
+    return [Math.sin(theta) * Math.cos(phi), Math.cos(theta), Math.sin(theta) * Math.sin(phi)];
+  };
+  const out = [];
+  const push = (p) => out.push(0.5 * p[0], 0.5 * p[1], 0.5 * p[2], p[0], p[1], p[2]); // position, normal
+  for (let i = 0; i < rings; i++) {
+    for (let j = 0; j < segments; j++) {
+      const a = point(i, j), b = point(i + 1, j), c = point(i + 1, j + 1), d = point(i, j + 1);
+      for (const p of [a, c, b, a, d, c]) push(p); // counter-clockwise seen from outside
+    }
+  }
+  return new Float32Array(out);
+}

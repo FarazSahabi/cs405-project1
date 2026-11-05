@@ -70,9 +70,9 @@ export function createArm() {
  *   hand       T(0, len2, 0)       · Rz(a3)
  *   satellite  Ry(spin) · T(orbit, 0, 0)
  */
-export function poseArm(arm, { a1, a2, a3, spin }) {
+export function poseArm(arm, { a1, a2, a3, spin, base }) {
   const f = (x) => x.toFixed(2);
-  const [bx, by, bz] = ARM.basePos;
+  const [bx, by, bz] = base ?? ARM.basePos; // where the base stands (moving it moves the whole arm)
 
   arm.base.local = mat4.translate(bx, by, bz);
   arm.arm1.local = mul(mat4.translate(0, ARM.baseHeight, 0), mat4.rotateZ(a1));

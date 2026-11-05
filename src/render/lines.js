@@ -19,11 +19,14 @@ export class LineRenderer {
   /**
    * @param gpu         result of initWebGPU()
    * @param vertexData  Float32Array of interleaved position + colour
+   * @param options     { topology: 'line-list' (default) | 'triangle-list' } — the
+   *                    triangle list is for thick lines drawn as flat strips
    */
-  constructor(gpu, vertexData) {
+  constructor(gpu, vertexData, { topology = 'line-list' } = {}) {
     const { device } = gpu;
     this.gpu = gpu;
     this.vertexCount = vertexData.length / FLOATS_PER_VERTEX;
+    this.capacityBytes = vertexData.byteLength;
 
     this.vertices = device.createBuffer({
       label: 'line vertices',
@@ -51,9 +54,22 @@ export class LineRenderer {
         targets: [{ format: gpu.viewFormat }],
         constants: fragmentConstants(gpu),
       },
-      primitive: { topology: 'line-list' },
+      primitive: { topology },
       depthStencil: { format: DEPTH_FORMAT, depthWriteEnabled: false, depthCompare: 'always' },
     });
+  }
+
+  /**
+   * Replace the vertices (for lines that change every frame, e.g. a camera
+   * frustum). The new data may be shorter than the data given to the
+   * constructor, but not longer.
+   */
+  setVertices(vertexData) {
+    if (vertexData.byteLength > this.capacityBytes) {
+      throw new Error(`LineRenderer.setVertices: ${vertexData.byteLength} bytes > capacity ${this.capacityBytes}`);
+    }
+    this.gpu.device.queue.writeBuffer(this.vertices, 0, vertexData);
+    this.vertexCount = vertexData.length / FLOATS_PER_VERTEX;
   }
 
   /** One drawable instance: its own uniform buffer + bind group. */

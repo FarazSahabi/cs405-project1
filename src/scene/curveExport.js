@@ -18,11 +18,39 @@
  * The painting quad spans x ∈ [−a, a], y ∈ [−1, 1] at z = 0 (a = image
  * width / height), so  u = (x + a) / (2a)  and  v = (1 − y) / 2.
  */
-import { todo } from '../math/todo.js';
 
-/** TODO (Part D): build the object above from your curve data. */
+const round = (x) => Math.round(x * 1e4) / 1e4;
+
+/**
+ * World [x, y] in the painting plane → normalised painting coordinates
+ * [u, v]: u = (x + a) / (2a), v = (1 − y) / 2, with a = image width / height.
+ */
+export function worldToNormalised(p, aspect) {
+  return [round((p[0] + aspect) / (2 * aspect)), round((1 - p[1]) / 2)];
+}
+
+/** Inverse of worldToNormalised(). */
+export function normalisedToWorld(q, aspect) {
+  return [q[0] * 2 * aspect - aspect, 1 - 2 * q[1]];
+}
+
+/**
+ * Build the JSON object described above.
+ *
+ * @param curve {
+ *   painting: string,                 id of the painting ("kabatas")
+ *   aspect:   number,                 image width / height
+ *   kind:     'bezier-c1' | 'catmull-rom',
+ *   segments: [[P0,P1,P2,P3], …],     world [x, y] points (kind 'bezier-c1')
+ *   points:   [[x, y], …],            world [x, y] points (kind 'catmull-rom')
+ * }
+ */
 export function curveToJSON(curve) {
-  return todo('curveToJSON');
+  const norm = (p) => worldToNormalised(p, curve.aspect);
+  const out = { painting: curve.painting, kind: curve.kind };
+  if (curve.kind === 'bezier-c1') out.segments = curve.segments.map((seg) => seg.map(norm));
+  else out.points = curve.points.map(norm);
+  return out;
 }
 
 /** Provided: save any object as a .json download in the browser. */

@@ -1,7 +1,6 @@
 /**
  * Paintings from the Sakıp Sabancı Museum collection, used by the course.
- * Pick yours here (DEFAULT_PAINTING), from the panel, or with ?painting=<id>
- * in the URL.
+ * The project uses one painting, set by DEFAULT_PAINTING below.
  *
  * To use a different SSM painting: put the image in public/paintings/ and add
  * an entry below. Keep the long side at about 1280 px.
