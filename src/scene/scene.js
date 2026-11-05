@@ -92,7 +92,7 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
     showCurve: true,             // curve, control points and the travelling object
     polygon: true,               // control polygon
     showDC: true,                // de Casteljau construction (Bézier only)
-    dcSeg: 2, dcT: 0.5,          // which segment (1–3) and parameter t
+    dcSeg: 1, dcT: 0.5,          // which segment (1–3) and parameter t
     animateCurve: true,          // object moves along the curve
     speed: 0.1,                  // curve parameter units per second
     u: 0,                        // position along the whole curve, 0 … 1
