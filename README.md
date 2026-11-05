@@ -141,11 +141,8 @@ frame, number of draw calls and vertices submitted per frame.
 - The debug axes and the curve overlay ignore the depth buffer so they stay
   visible over the painting.
 
-## 8. Submission
 
 ```bash
-git add . && git commit -m "message" && git push
-git tag project1-final && git push origin project1-final
 ```
 
 ## Bonus (both off by default; the Part A–E scene is unchanged)
