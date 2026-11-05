@@ -29,7 +29,7 @@ If the browser has no WebGPU the page says so. Serve from `localhost`; opening
 
 The painting hangs in the scene as a textured quad. In front of it:
 
-- **Part A:** three fixed boxes and an orange box driven by sliders.
+- **Part A:** three fixed objects of different shapes (a sphere, a cylinder and a box) and an orange box driven by sliders.
   A grey box shows the same transformation applied in the other order (five boxes in all).
 - **Part B:** a jointed arm (a scene graph) with a small box orbiting its hand.
 - **Part D:** a pink curve traced over the boat, its control points, and a white
@@ -48,16 +48,8 @@ control point can be grabbed.
 
 ## 4. Controls (panel on the right)
 
-**Camera**
-- `view`: *main camera* (orbit with the mouse) or *inspection camera*, a fixed
-  second camera that looks at the scene from outside and draws the main camera's
-  frustum (yellow = near plane, red = far plane, cyan = viewing direction).
-- `projection`: perspective or orthographic, switchable at run time.
-- `fov`, `near`, `far`: the main camera's parameters. The readout below shows eye,
-  target, projection, aspect, fov (or visible height) and near/far.
-
 **Scene**
-- `show Part A boxes`, `show Part B arm`: show or hide each part.
+- `show Part A objects`, `show Part B arm`: show or hide each part.
 - `debug: local axes of each node`: draws every scene-graph node's local axes
   (x red, y green, z blue).
 
@@ -73,6 +65,14 @@ control point can be grabbed.
 - `base x/y/z`: moves the arm's base; the whole subtree follows.
 - The tree with each node's local transform and the world matrix of the
   satellite (the leaf) are printed below.
+
+**Part C · Camera and projection**
+- `view`: *main camera* (orbit with the mouse) or *inspection camera*, a fixed
+  second camera that looks at the scene from outside and draws the main camera's
+  frustum (yellow = near plane, red = far plane, cyan = viewing direction).
+- `projection`: perspective or orthographic, switchable at run time.
+- `fov`, `near`, `far`: the main camera's parameters. The readout below shows eye,
+  target, projection, aspect, fov (or visible height) and near/far.
 
 **Part D · Curves**
 - `show curve`: hides or shows the curve, control points and the ball.
@@ -140,3 +140,10 @@ frame, number of draw calls and vertices submitted per frame.
   is always one pixel wide), which is why the vertex counter is a few thousand.
 - The debug axes and the curve overlay ignore the depth buffer so they stay
   visible over the painting.
+
+## 8. Submission
+
+```bash
+git add . && git commit -m "message" && git push
+git tag project1-final && git push origin project1-final
+```

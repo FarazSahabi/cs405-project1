@@ -56,3 +56,23 @@ export function sphere(rings = 14, segments = 24) {
   }
   return new Float32Array(out);
 }
+
+/**
+ * Unit cylinder (radius 0.5, height 1) centred at the origin, axis along y,
+ * with flat caps, as a triangle list with side and cap normals.
+ */
+export function cylinder(segments = 28) {
+  const out = [];
+  const push = (p, n) => out.push(p[0], p[1], p[2], n[0], n[1], n[2]);
+  const ring = (j, y) => [0.5 * Math.cos((2 * Math.PI * j) / segments), y, 0.5 * Math.sin((2 * Math.PI * j) / segments)];
+  const side = (j) => [Math.cos((2 * Math.PI * j) / segments), 0, Math.sin((2 * Math.PI * j) / segments)];
+  for (let j = 0; j < segments; j++) {
+    const t0 = ring(j, 0.5), t1 = ring(j + 1, 0.5), b0 = ring(j, -0.5), b1 = ring(j + 1, -0.5);
+    // side: counter-clockwise seen from outside
+    for (const [p, k] of [[t0, j], [b1, j + 1], [b0, j], [t0, j], [t1, j + 1], [b1, j + 1]]) push(p, side(k));
+    // caps
+    for (const p of [[0, 0.5, 0], t1, t0]) push(p, [0, 1, 0]);
+    for (const p of [[0, -0.5, 0], b0, b1]) push(p, [0, -1, 0]);
+  }
+  return new Float32Array(out);
+}

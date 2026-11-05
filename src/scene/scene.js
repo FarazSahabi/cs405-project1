@@ -6,7 +6,7 @@
  *     scene.draw(pass, viewProj)      inside the frame's render pass
  * and scene.reset() from the panel's "reset" button.
  *
- * Part A: three fixed boxes in front of the painting, one box driven by UI
+ * Part A: three fixed objects of different shapes (sphere, cylinder, box) in front of the painting, one box driven by UI
  *         sliders, and a switch between M = T·R·S and M = S·R·T with both
  *         matrices printed.
  * Part B: a jointed arm built as a scene graph (see scene/arm.js): each node
@@ -35,7 +35,7 @@
  * counter in the panel is correct (Part E) — the renderers do it.
  */
 import * as mat4 from '../math/mat4.js';
-import { cube, axes, sphere } from './geometry.js';
+import { cube, axes, sphere, cylinder } from './geometry.js';
 import { MeshRenderer } from '../render/mesh.js';
 import { LineRenderer } from '../render/lines.js';
 import { createArm, poseArm, treeText } from './arm.js';
@@ -60,6 +60,8 @@ const wrapAngle = (x) => ((x + Math.PI) % (2 * Math.PI)) - Math.PI;
 
 export function createScene({ gpu, renderer, painting, panel, paintingId = () => 'kabatas' }) {
   const mesh = new MeshRenderer(gpu, cube());
+  const ballMesh = new MeshRenderer(gpu, sphere());      // also the ball that travels along the curve
+  const cylinderMesh = new MeshRenderer(gpu, cylinder());
   const lines = new LineRenderer(gpu, axes(AXES_LENGTH));
   // Frustum overlay: the vertex buffer is rewritten whenever the camera changes.
   const frustumLines = new LineRenderer(gpu, new Float32Array(FRUSTUM_MAX_VERTICES * 6));
@@ -102,14 +104,15 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
 
   /* ================= Part A objects ================= */
 
-  // Three fixed boxes in front of the painting (z > 0). x is a fraction of
-  // the painting's half-width a, so that the boxes stay over the picture.
+  // Three fixed objects of different shapes in front of the painting (z > 0):
+  // a sphere, a cylinder and a box. x is a fraction of the painting's
+  // half-width a, so that they stay over the picture.
   const fixed = [
-    { name: 'box B (blue)', instance: mesh.createInstance([0.05, 0.22, 0.7]),
+    { name: 'sphere (blue)', renderer: ballMesh, instance: ballMesh.createInstance([0.05, 0.22, 0.7]),
       fx: -0.65, y: -0.2, z: 0.35, rotY: 0.5, rotZ: 0.0, size: [0.3, 0.3, 0.3] },
-    { name: 'box C (green, tall)', instance: mesh.createInstance([0.08, 0.55, 0.12]),
+    { name: 'cylinder (green, tall)', renderer: cylinderMesh, instance: cylinderMesh.createInstance([0.08, 0.55, 0.12]),
       fx: -0.1, y: 0.55, z: 0.5, rotY: -0.6, rotZ: 0.15, size: [0.2, 0.45, 0.2] },
-    { name: 'box D (yellow, flat)', instance: mesh.createInstance([0.85, 0.6, 0.05]),
+    { name: 'box (yellow, flat)', renderer: mesh, instance: mesh.createInstance([0.85, 0.6, 0.05]),
       fx: -0.15, y: -0.7, z: 0.3, rotY: 0.2, rotZ: -0.25, size: [0.55, 0.12, 0.25] },
   ];
   for (const box of fixed) box.model = mat4.identity();
@@ -129,14 +132,13 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
   });
 
   // The object that travels along the curve: a white ball.
-  const ballMesh = new MeshRenderer(gpu, sphere());
   const body = ballMesh.createInstance([0.95, 0.95, 0.95]);
   let bodyModel = mat4.identity();
 
   /* ================= panel ================= */
 
   const sf = panel.folder('Scene');
-  handles.push(sf.toggle('show Part A boxes', state, 'showA'));
+  handles.push(sf.toggle('show Part A objects', state, 'showA'));
   handles.push(sf.toggle('show Part B arm', state, 'showB'));
   handles.push(sf.toggle('debug: local axes of each node', state, 'debugAxes'));
 
@@ -303,7 +305,7 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
         mesh.draw(pass, instance, mul(viewProj, model), model, renderer);
 
       if (state.showA) {
-        for (const box of fixed) drawBox(box.instance, box.model);
+        for (const box of fixed) box.renderer.draw(pass, box.instance, mul(viewProj, box.model), box.model, renderer);
         const main = state.useTRS ? mTRS : mSRT;
         const alt = state.useTRS ? mSRT : mTRS;
         drawBox(controlled, main);

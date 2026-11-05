@@ -37,6 +37,11 @@ async function main() {
   panelRoot.appendChild(title);
   const stats = new Stats(panelRoot);
 
+  // Create the folders in the order they appear on screen (A, B, C, D); the code
+  // below and scene.js fill them in. panel.folder() returns the same folder for the same title.
+  for (const title of ['Painting', 'Scene', 'Part A · Transformations', 'Part B · Scene graph',
+    'Part C · Camera and projection', 'Part D · Curves', 'View']) panel.folder(title);
+
   const pf = panel.folder('Painting');
   pf.note(`${current.artist} — ${current.title}`);
 
@@ -46,7 +51,7 @@ async function main() {
   const view = { mode: 'main' };               // 'main' | 'inspection'
   const ui = { fov: 45, near: camera.near, far: camera.far };
 
-  const cf = panel.folder('Camera');
+  const cf = panel.folder('Part C · Camera and projection');
   const camStatus = cf.text('');
   const viewSelect = cf.select('view',
     [{ value: 'main', label: 'main camera (orbit with the mouse)' },

@@ -12,13 +12,17 @@
  */
 export function createPanel(root) {
   root.classList.add('panel');
+  const folders = new Map(); // title → folder, so a folder created early can be filled later
   const api = {
     root,
     folder(title, { open = true } = {}) {
+      if (folders.has(title)) return folders.get(title);
       const d = el('details', { class: 'folder' }, root);
       d.open = open;
       el('summary', { text: title }, d);
-      return controls(el('div', { class: 'body' }, d));
+      const folder = controls(el('div', { class: 'body' }, d));
+      folders.set(title, folder);
+      return folder;
     },
     ...controls(root),
   };
