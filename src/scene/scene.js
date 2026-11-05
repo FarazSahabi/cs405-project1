@@ -43,6 +43,8 @@ import { FRUSTUM_MAX_VERTICES } from './frustum.js';
 import { createCurveEditor, CURVE_MAX_VERTICES, CURVE_Z } from './curveEditor.js';
 import { curveToJSON, downloadJSON, worldToNormalised } from './curveExport.js';
 import { cubicBezier } from '../math/curves.js';
+import { createCurveFit, FIT_MAX_VERTICES } from './curveFit.js';
+import { revolveMesh, profileFromCurve } from './revolve.js';
 
 const mul = mat4.multiply;
 
@@ -73,6 +75,18 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
   const curveLines = new LineRenderer(gpu, new Float32Array(CURVE_MAX_VERTICES * 6), { topology: 'triangle-list' });
   const curveInstance = curveLines.createInstance();
 
+  // Bonus 1: least-squares Bézier fit of a hand-drawn stroke (scene/curveFit.js).
+  const fit = createCurveFit();
+  const fitLines = new LineRenderer(gpu, new Float32Array(FIT_MAX_VERTICES * 6), { topology: 'triangle-list' });
+  const fitInstance = fitLines.createInstance();
+
+  // Bonus 2: surface of revolution of the Part D curve (scene/revolve.js).
+  const REV_SAMPLES = 24, REV_STEPS = 48;
+  const revMesh = new MeshRenderer(gpu, new Float32Array((REV_SAMPLES - 1) * REV_STEPS * 6 * 6));
+  revMesh.setVertices(new Float32Array(0));
+  const revInstance = revMesh.createInstance([0.85, 0.5, 0.15]);
+  let revKey = '';
+
   /** Starting values of everything the panel controls (reset() restores them). */
   const makeDefaults = () => ({
     // — which parts are visible, and the debug drawing —
@@ -98,6 +112,9 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
     animateCurve: true,          // object moves along the curve
     speed: 0.1,                  // curve parameter units per second
     u: 0,                        // position along the whole curve, 0 … 1
+    showFit: false,              // Bonus: curve-fitting overlay (off by default)
+    showRev: false,              // Bonus: surface of revolution (off by default)
+    revRadius: 0.3, revHeight: 0.6, revX: 0.0, revY: -0.1, revZ: 0.6, revSpin: 0,
   });
   const state = makeDefaults();
   const handles = []; // panel controls that must be refreshed by reset()
@@ -134,6 +151,7 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
   // The object that travels along the curve: a white ball.
   const body = ballMesh.createInstance([0.95, 0.95, 0.95]);
   let bodyModel = mat4.identity();
+  let revModel = mat4.identity();
 
   /* ================= panel ================= */
 
@@ -194,6 +212,28 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
   cfold.note('Drag the yellow squares (joints) and orange crosses (handles) on the painting. ' +
     'Dark crosses are computed: dragging them mirrors the previous handle, which keeps C¹.');
 
+  // Bonus panel folders (after Part D).
+  const fitF = panel.folder('Bonus · Curve fitting');
+  const fitToggle = fitF.toggle('show fitting overlay', state, 'showFit');
+  handles.push(fitToggle);
+  fitF.note('Hold Alt (Option) and drag over the painting to draw a stroke. On release one cubic Bézier is fitted to it by least squares (white = stroke, green = fitted curve).');
+  const fitText = fitF.text();
+  fitF.button('clear', () => fit.clear());
+  fitF.button('export fitted curve as JSON', () => {
+    const data = fit.toExport(paintingId(), painting.aspect);
+    if (data) downloadJSON(curveToJSON(data), `curve-${paintingId()}-fit.json`);
+  });
+
+  const revF = panel.folder('Bonus · Surface of revolution');
+  handles.push(revF.toggle('show revolved surface', state, 'showRev'));
+  handles.push(revF.slider('radius', state, 'revRadius', 0.05, 0.8, 0.01));
+  handles.push(revF.slider('height', state, 'revHeight', 0.1, 1.2, 0.01));
+  handles.push(revF.slider('position x', state, 'revX', -1, 1, 0.01));
+  handles.push(revF.slider('position y', state, 'revY', -1, 1, 0.01));
+  handles.push(revF.slider('position z', state, 'revZ', 0.1, 1.5, 0.01));
+  handles.push(revF.slider('spin speed', state, 'revSpin', 0, 3, 0.05));
+  revF.note('The Part D curve is spun around the y axis: its left-most point is the axis, its lowest point the bottom. Edit the curve and the surface follows.');
+
   /** Text for the Part D readout: C(t) at the de Casteljau parameter, formulas, C¹ rule. */
   const describeCurve = (pos, tan, heading) => {
     const f = (x, d = 3) => x.toFixed(d);
@@ -229,6 +269,9 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
   return {
     state,
     curve,
+    fit,
+    /** Alt-drag on the painting turns the overlay on (and ticks its checkbox). */
+    enableFit() { state.showFit = true; fitToggle.update(); },
     kindSelect,
 
     update(dt, time) {
@@ -287,6 +330,22 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
         dc: { on: state.showDC, segment: Math.round(state.dcSeg) - 1, t: state.dcT },
       }));
       curveText.set(describeCurve(pos, tan, heading));
+
+      /* ---- Bonus ---- */
+      if (state.showFit) {
+        fitLines.setVertices(fit.vertices());
+        fitText.set(fit.describe());
+      }
+      if (state.showRev) {
+        const pts = Array.from({ length: REV_SAMPLES }, (_, k) => curve.evalAt(k / (REV_SAMPLES - 1)).pos);
+        const key = JSON.stringify([pts, state.revRadius, state.revHeight]);
+        if (key !== revKey) {
+          revKey = key;
+          revMesh.setVertices(revolveMesh(profileFromCurve(pts, state.revRadius, state.revHeight), REV_STEPS));
+        }
+        revModel = mat4.multiply(mat4.translate(state.revX * painting.aspect, state.revY, state.revZ),
+          mat4.rotateY(time * state.revSpin));
+      }
     },
 
     /**
@@ -331,6 +390,9 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
         ballMesh.draw(pass, body, mul(viewProj, bodyModel), bodyModel, renderer);
       }
 
+      if (state.showFit) fitLines.draw(pass, fitInstance, viewProj, renderer);
+      if (state.showRev) revMesh.draw(pass, revInstance, mul(viewProj, revModel), revModel, renderer);
+
       // The frustum's vertices are already in world space: M = identity.
       if (frustumOn) frustumLines.draw(pass, frustumInstance, viewProj, renderer);
     },
@@ -339,6 +401,8 @@ export function createScene({ gpu, renderer, painting, panel, paintingId = () =>
       Object.assign(state, makeDefaults());
       for (const h of handles) h.update();
       curve.reset();
+      fit.clear();
+      revKey = '';
       curve.kind = 'bezier-c1';
       kindSelect.set('bezier-c1');
     },

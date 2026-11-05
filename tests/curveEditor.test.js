@@ -102,6 +102,14 @@ describe('Part D · JSON export', () => {
     assert.deepEqual(j.segments[0][3], j.segments[1][0]);
   });
 
+  test('bezier-fit has one segment of 4 points', () => {
+    const j = curveToJSON({ painting: 'kabatas', aspect: 0.82, kind: 'bezier-fit', segments: [[[0, 0], [0.1, 0.5], [0.3, 0.5], [0.5, 0]]], points: [] });
+    assert.equal(j.kind, 'bezier-fit');
+    assert.equal(j.segments.length, 1);
+    assert.equal(j.segments[0].length, 4);
+    assert.equal(j.points, undefined);
+  });
+
   test('catmull-rom has "points"', () => {
     const ed = createCurveEditor({ painting });
     ed.kind = 'catmull-rom';

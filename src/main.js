@@ -40,7 +40,11 @@ async function main() {
   // Create the folders in the order they appear on screen (A, B, C, D); the code
   // below and scene.js fill them in. panel.folder() returns the same folder for the same title.
   for (const title of ['Painting', 'Scene', 'Part A · Transformations', 'Part B · Scene graph',
-    'Part C · Camera and projection', 'Part D · Curves', 'View']) panel.folder(title);
+    'Part C · Camera and projection', 'Part D · Curves']) panel.folder(title);
+  // The bonus folders (filled by scene.js) start collapsed and sit before 'View'.
+  panel.folder('Bonus · Curve fitting', { open: false });
+  panel.folder('Bonus · Surface of revolution', { open: false });
+  panel.folder('View');
 
   const pf = panel.folder('Painting');
   pf.note(`${current.artist} — ${current.title}`);
@@ -95,6 +99,7 @@ async function main() {
   // the painting); a press anywhere else orbits the camera.
   let lastVP = null;   // P · V of the camera drawn in the last frame
   let editing = false; // true while a control point is being dragged
+  let stroking = false; // true while an Alt-drag stroke is being drawn (bonus)
   const canvasSize = () => ({ w: canvas.clientWidth, h: canvas.clientHeight });
   const canMove = () => view.mode === 'main' && scene.state.showCurve && lastVP;
   const aspectNow = () => canvas.width / canvas.height;
@@ -102,6 +107,14 @@ async function main() {
   attachPointer(canvas, {
     down(e) {
       if (e.button !== 0 || !canMove()) return;
+      if (e.alt) { // bonus: draw a stroke to fit a curve to
+        scene.enableFit();
+        scene.fit.begin();
+        stroking = true;
+        const p = pickPoint(camera, aspectNow(), e.ndc);
+        if (p) scene.fit.add(p);
+        return;
+      }
       const id = scene.curve.pick(e.ndc, lastVP, canvasSize());
       if (id) { scene.curve.active = id; editing = true; }
     },
@@ -111,6 +124,11 @@ async function main() {
       canvas.style.cursor = scene.curve.hover ? 'grab' : '';
     },
     drag(e) {
+      if (stroking) {
+        const p = pickPoint(camera, aspectNow(), e.ndc);
+        if (p) scene.fit.add(p);
+        return;
+      }
       if (editing) {
         const p = pickPoint(camera, aspectNow(), e.ndc);
         if (p) scene.curve.dragTo(p);
@@ -122,6 +140,7 @@ async function main() {
       applyOrbit(camera, orbit);
     },
     up() {
+      if (stroking) { stroking = false; scene.fit.end(); }
       editing = false;
       scene.curve.active = null;
     },

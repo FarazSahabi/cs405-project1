@@ -28,6 +28,7 @@ export class MeshRenderer {
     const { device } = gpu;
     this.gpu = gpu;
     this.vertexCount = vertexData.length / FLOATS_PER_VERTEX;
+    this.capacityBytes = vertexData.byteLength;
     this.scratch = new Float32Array(UNIFORM_FLOATS);
 
     this.vertices = device.createBuffer({
@@ -59,6 +60,15 @@ export class MeshRenderer {
       primitive: { topology: 'triangle-list', cullMode: 'back' },
       depthStencil: { format: DEPTH_FORMAT, depthWriteEnabled: true, depthCompare: 'less' },
     });
+  }
+
+  /** Replace the mesh (for a mesh that changes, e.g. the surface of revolution); at most the size given to the constructor. */
+  setVertices(vertexData) {
+    if (vertexData.byteLength > this.capacityBytes) {
+      throw new Error(`MeshRenderer.setVertices: ${vertexData.byteLength} bytes > capacity ${this.capacityBytes}`);
+    }
+    if (vertexData.length) this.gpu.device.queue.writeBuffer(this.vertices, 0, vertexData);
+    this.vertexCount = vertexData.length / FLOATS_PER_VERTEX;
   }
 
   /**
@@ -95,6 +105,7 @@ export class MeshRenderer {
     s[35] = 1;
     this.gpu.device.queue.writeBuffer(instance.uniforms, 0, s);
 
+    if (this.vertexCount === 0) return;
     pass.setPipeline(this.pipeline);
     pass.setBindGroup(0, instance.bindGroup);
     pass.setVertexBuffer(0, this.vertices);

@@ -40,7 +40,7 @@ export function normalisedToWorld(q, aspect) {
  * @param curve {
  *   painting: string,                 id of the painting ("kabatas")
  *   aspect:   number,                 image width / height
- *   kind:     'bezier-c1' | 'catmull-rom',
+ *   kind:     'bezier-c1' | 'catmull-rom' | 'bezier-fit' (the bonus: one fitted segment),
  *   segments: [[P0,P1,P2,P3], …],     world [x, y] points (kind 'bezier-c1')
  *   points:   [[x, y], …],            world [x, y] points (kind 'catmull-rom')
  * }
@@ -48,8 +48,8 @@ export function normalisedToWorld(q, aspect) {
 export function curveToJSON(curve) {
   const norm = (p) => worldToNormalised(p, curve.aspect);
   const out = { painting: curve.painting, kind: curve.kind };
-  if (curve.kind === 'bezier-c1') out.segments = curve.segments.map((seg) => seg.map(norm));
-  else out.points = curve.points.map(norm);
+  if (curve.kind === 'catmull-rom') out.points = curve.points.map(norm);
+  else out.segments = curve.segments.map((seg) => seg.map(norm)); // 'bezier-c1', or 'bezier-fit' (one segment)
   return out;
 }
 

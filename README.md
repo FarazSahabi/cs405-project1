@@ -147,3 +147,17 @@ frame, number of draw calls and vertices submitted per frame.
 git add . && git commit -m "message" && git push
 git tag project1-final && git push origin project1-final
 ```
+
+## Bonus (both off by default; the Part A–E scene is unchanged)
+
+1. **Least-squares Bézier fitting** (`src/math/fit.js`, `src/scene/curveFit.js`).
+   Hold **Alt/Option** and drag over the painting to draw a stroke. On release the stroke is
+   resampled to 40 points and one cubic Bézier is fitted by least squares: chord-length
+   parameters, P0 and P3 fixed on the stroke ends, P1 and P2 from the 2×2 normal equations,
+   then a few Newton re-parametrisation steps. The panel (*Bonus · Curve fitting*) shows the
+   control points and the RMS / max error, and can export the result as JSON
+   (`kind: "bezier-fit"`). Tests: `tests/fit.test.js`.
+2. **Surface of revolution** (`src/scene/revolve.js`). Panel *Bonus · Surface of revolution*:
+   the Part D curve is spun around the y axis (left-most point = axis) into a lit mesh with
+   normals from the profile tangent. Radius, height, position and spin are sliders; editing
+   the curve updates the surface. Tests: `tests/revolve.test.js`.
